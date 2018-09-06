@@ -1,0 +1,104 @@
+apply plugin: 'org.springframework.boot'
+apply from: 'https://dl.bintray.com/scalding/generic/waroverlay.gradle'
+//Change branch version accordingly for corresponding version of cas e.g. 5.2.x, 5.3.x, etc. For RC versions, the 'master' branch msut be used
+apply from: 'https://raw.githubusercontent.com/apereo/cas/5.3.x/gradle/overrides.gradle'
+
+apply plugin: 'idea'
+apply plugin: 'groovy'
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+springBoot {
+    mainClass = "org.springframework.boot.loader.WarLauncher"
+}
+
+bootRepackage {
+    mainClass = "org.apereo.cas.web.CasWebApplication"
+    executable = false
+    excludeDevtools = false
+}
+
+bootRun {
+    addResources = true
+    classpath = sourceSets.main.compileClasspath
+}
+
+repositories {
+    mavenLocal()
+    jcenter()
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
+    maven { url 'http://developer.jasig.org/repo/content/groups/m2-legacy' }
+
+    maven { url 'https://dl.bintray.com/uniconiam/maven' }
+    maven { url 'https://jitpack.io' }
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src/main/groovy', 'src/main/java']
+        }
+        java {
+            srcDirs = []
+        }
+    }
+}
+
+dependencies {
+    compile "org.apereo.cas:cas-server-webapp-tomcat:${project.'cas.version'}@war"
+    if (!project.hasProperty('bootiful')) {
+        compile "org.apereo.cas:cas-server-support-json-service-registry:${project.'cas.version'}"
+        compile "org.apereo.cas:cas-server-support-hazelcast-ticket-registry:${project.'cas.version'}"
+        compile "org.apereo.cas:cas-server-support-interrupt-webflow:${project.'cas.version'}"
+        compile 'org.codehaus.groovy:groovy-all:2.4.10'
+    } else {
+        println "Running CAS in Bootiful mode; all dependencies except the CAS web application are ignored."
+    }
+}
+
+war {
+    baseName 'cas'
+    includeWarJars = true
+    entryCompression = ZipEntryCompression.STORED
+}
+
+task explodeWar(type: Copy, group: "build", description: "Explodes the cas.war") {
+    dependsOn build
+    from zipTree(project.war.outputs.files.singleFile)
+    into "${buildDir}/cas"
+}
+
+task run(group: "build", description: "Run the CAS web application in embedded container mode") {
+    dependsOn build
+    doLast {
+        def casRunArgs = Arrays.asList(project.'cas.run.jvmArgs'.split(" "))
+        javaexec {
+            main = "-jar";
+            jvmArgs = casRunArgs
+            args = ["build/libs/cas.war"]
+
+            logger.info "Started ${commandLine}"
+        }
+    }
+}
+
+task debug(group: "build", description: "Debug the CAS web application in embedded mode on port 5005") {
+    dependsOn build
+    doLast {
+        def casDebugArgs = Arrays.asList(project.'cas.debug.jvmArgs'.split(" "))
+
+        javaexec {
+            main = "-jar";
+            jvmArgs = casDebugArgs
+            args = ["build/libs/cas.war"]
+
+            logger.info "Started ${commandLine}"
+        }
+    }
+}
