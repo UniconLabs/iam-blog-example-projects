@@ -21,4 +21,4 @@ After copying, modify `/etc/cas/config/interrupt/interrupts-by-service.conf` fil
 
 ## Run
 
-`java -jar cas/build/libs/cas.war`
+`./run`

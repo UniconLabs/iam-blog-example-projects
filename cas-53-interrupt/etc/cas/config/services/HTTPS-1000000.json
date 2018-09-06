@@ -1,0 +1,8 @@
+{
+  @class: org.apereo.cas.services.RegexRegisteredService
+  serviceId: ^http.*://.*
+  name: HTTPS
+  id: 1000000
+  description: HTTPS protocol wildcard service.
+  evaluationOrder: 1000000
+}
